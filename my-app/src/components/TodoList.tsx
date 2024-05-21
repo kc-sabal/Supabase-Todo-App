@@ -6,6 +6,8 @@ const TodoList = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [error, setError] = useState("");
 
+  const [editTodo, setEditTodo] = useState<Todo | null>();
+
   const fetchTodos = async () => {
     const { data, error } = await supabase.from("todos").select();
     if (error) {
@@ -49,7 +51,56 @@ const TodoList = () => {
       setError(error.message);
       return;
     }
-    fetchTodos();
+  };
+
+  const handleMarkCompleted = async (id: number, isComplete: boolean) => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+      const response = await fetch(
+        "https://your-supabase-url.supabase.co/functions/v1/updateTodoStatus",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ id, isComplete }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update todo");
+      }
+    } catch (err: any) {
+      setError(err?.message || "");
+    }
+  };
+
+  const handleEdit = (todo: Todo) => {
+    setEditTodo(todo);
+  };
+
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditTodo({
+      ...(editTodo as Todo),
+      title: e.target.value ?? "",
+    });
+  };
+
+  const handleEditSave = async (id: number) => {
+    console.log({ editTodo, id });
+    const { data, error } = await supabase
+      .from("todos")
+      .update({ title: editTodo?.title })
+      .eq("id", id);
+    console.log(data);
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setEditTodo(null);
   };
 
   return (
@@ -73,8 +124,26 @@ const TodoList = () => {
               columnGap: "12px",
             }}
           >
-            <h3>{todo.title}</h3>
-            <button onClick={() => handleDelete(todo.id)}>Delete</button>
+            {editTodo?.id === todo.id ? (
+              <div style={{ flex: 1 }}>
+                <input
+                  type="text"
+                  value={editTodo.title ?? ""}
+                  onChange={handleEditChange}
+                  style={{ width: "100%", marginRight: "8px" }}
+                />
+                <button onClick={() => handleEditSave(todo.id)}>Save</button>
+              </div>
+            ) : (
+              <>
+                <h3>{todo.title}</h3>
+                <div style={{ display: "flex", columnGap: "4px" }}>
+                  <button onClick={() => handleEdit(todo)}>Edit</button>
+                  <button onClick={() => handleEdit(todo)}>Edit</button>
+                  <button onClick={() => handleDelete(todo.id)}>Delete</button>
+                </div>
+              </>
+            )}
           </div>
           <p>{todo.created_at}</p>
         </div>
