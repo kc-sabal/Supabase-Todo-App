@@ -16,7 +16,11 @@ const TodoList = () => {
       return;
     }
 
-    setTodos(data);
+    const sortedData = data.sort(
+      (a: Todo, b: Todo) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    setTodos(sortedData);
     setError("");
   };
 
@@ -58,7 +62,7 @@ const TodoList = () => {
       const { data: session } = await supabase.auth.getSession();
       const token = session?.session?.access_token;
       const response = await fetch(
-        "https://your-supabase-url.supabase.co/functions/v1/updateTodoStatus",
+        "https://istcjbiceipwbvpsbzyh.supabase.co/functions/v1/updateTodoStatus",
         {
           method: "POST",
           headers: {
@@ -138,14 +142,22 @@ const TodoList = () => {
               <>
                 <h3>{todo.title}</h3>
                 <div style={{ display: "flex", columnGap: "4px" }}>
-                  <button onClick={() => handleEdit(todo)}>Edit</button>
+                  <button
+                    onClick={() =>
+                      handleMarkCompleted(todo.id, !todo.isComplete as boolean)
+                    }
+                  >
+                    {todo.isComplete ? "Incomplete" : "Complete"}
+                  </button>
                   <button onClick={() => handleEdit(todo)}>Edit</button>
                   <button onClick={() => handleDelete(todo.id)}>Delete</button>
                 </div>
               </>
             )}
           </div>
-          <p>{todo.created_at}</p>
+          <p>
+            {todo.created_at} -- {todo.isComplete?.toString()}
+          </p>
         </div>
       ))}
       {error && <p style={{ color: "red" }}>{error}</p>}
